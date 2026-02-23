@@ -29,8 +29,8 @@ Technical design for implementing the FinPlanner web app. This document is inten
 
 **Backend**
 
-- **Runtime:** Node.js (LTS). Enables one language across backend and tooling; sufficient for local-only and future Docker/Kubernetes deployment.
-- **Framework:** Express (or Fastify). Minimal; good for REST APIs and serving static frontend in development.
+- **Runtime:** Node.js (24). Enables one language across backend and tooling; sufficient for local-only and future Docker/Kubernetes deployment.
+- **Framework:** Express. Minimal; good for REST APIs and serving static frontend in development.
 - **Database:** PostgreSQL. Required by PRD for MVP; no file-based or SQLite. Use a single database; no read replicas or sharding for MVP/v1.
 - **ORM / query layer:** Use an ORM or query builder that supports migrations and type-safe access (e.g. Drizzle, Prisma, or Knex + raw types). Pick one and use it consistently.
 
@@ -149,7 +149,7 @@ Alternatively, keep `server/` and `client/` under `src/` in a single package. Wh
 - **assumptions**
   - One row per project (or key-value / JSONB per project). Fields match PRD Section 6, e.g. inflation_rate_pct, col_annual_cents (or monthly and derive), long_term_return_pct, short_term_return_pct, ss_claiming_age_user, ss_claiming_age_partner, ss_benefit_user_cents, ss_benefit_partner_cents, pre_tax_withdrawal_start_age, rmd_start_age, tax_rate_on_withdrawals_pct, income_growth_rate_pct. Use sensible defaults; store as numbers with clear units (percent, cents, age). **SS benefit default (MVP):** Use a **literal constant** for default ss_benefit_user_cents and ss_benefit_partner_cents (e.g. current-year maximum benefit); document the value and source in code or README so it is auditable and user-editable.
 
-- **user_profile (v1)**  
+- **user_profile (v1)**
   - For MVP, store **user_age** and **partner_age** on `project` (no DOB; age only). Collect both; projection models partner Social Security from claiming age and benefit. v1 adds full user_profile.
 
 **Naming and types**
