@@ -1,7 +1,18 @@
 # FinPlanner — Product Requirements
 
-High-level product requirements to reference during development.  
+High-level product requirements to reference during development.
 _(Aligned with [project vision](.cursor/rules/project-context.mdc).)_
+
+<!--
+DOCUMENT CONVENTIONS (for AI agents / line-based editors):
+- Main sections: "## N. Title" (N = 1..8) or "## Title" for unnumbered (MVP scope, v1 behaviors).
+- Grep numbered sections: ^## [0-9]+\.
+- Tables: one row per line; do not wrap cell content across lines.
+- Lists: one item per line, marker "- "; subsections use "**Bold label**" then bullets.
+- To-be-answered: each question is "N. **Title**" with sub-bullets; add/remove by line.
+- Cross-references: "Section N" refers to "## N. ..." in this file.
+- Use ASCII double quotes " rather than curly double quotes
+-->
 
 ---
 
@@ -12,27 +23,33 @@ Full multi-user, account creation, and project list come in v1.
 
 **MVP behavior**
 
-- **Single user.** No account creation. Username and password are hardcoded; no signup flow.
+- **Single user.** No account creation. Username and password are hardcoded in source code; no signup flow.
 - **Single project.** No project creation or project list. After login, the user goes directly to the tabbed **project details / management** experience (Current state, Assumptions, Yearly balance sheet).
 - **Local-only.** Runs on a single machine (developer’s Mac). The MVP may **require being online** (no requirement for full offline operation). Stack must be chosen so the app can later transition to Docker → Kubernetes → cloud-hosted without rework.
 
 **Decisions (resolved for MVP / technical design)**
 
-| Topic                    | Decision                                                                                                                    |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| Near-term goals          | Definition only: name, amount, schedule (one-time date or recurrence: start date, end date, frequency default yearly). No progress display. |
-| Income / spending period | User chooses monthly or annual; app calculates and stores the other.                                                        |
-| Current state            | Amount + “as of” date per item. No full history.                                                                            |
-| Projection end           | User's age, partner's age, or calendar year. Switchable: only affects column count and years calculated; no change to stored data or calculation logic. |
-| Withdrawal order         | Default per financial best practice (e.g. taxable → pre-tax → Roth).                                                        |
-| Retirement income        | Social Security in scope; pension, annuity, etc. out of scope.                                                              |
-| Audit trail              | Out of scope for MVP and v1.                                                                                                |
-| Data export              | Out of scope.                                                                                                               |
+| Topic                    | Decision                                                                                                                                                                                                            |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Near-term goals          | Definition only: name, amount, schedule (one-time date or recurrence: start date, end date, frequency default yearly). No progress display.                                                                         |
+| Income / spending period | User chooses monthly or annual; app calculates and stores the other.                                                                                                                                                |
+| Current state            | Amount + "as of" date per item. No full history.                                                                                                                                                                    |
+| Projection end           | User's age, partner's age, or calendar year. Switchable: only affects column count and years calculated; no change to stored data or calculation logic.                                                             |
+| Withdrawal order         | Default per financial best practice (e.g. taxable → pre-tax → Roth).                                                                                                                                                |
+| Retirement income        | Social Security in scope; pension, annuity, etc. out of scope.                                                                                                                                                      |
+| Audit trail              | Out of scope for MVP and v1.                                                                                                                                                                                        |
+| Data export              | Out of scope.                                                                                                                                                                                                       |
+| Data persistence (MVP)   | PostgreSQL. Chosen so the app can later move to Docker → Kubernetes → cloud without rework.                                                                                                                         |
+| Local-only (MVP)         | App and data run only on the developer's Mac; everything is hosted and served via localhost. No cloud or multi-tenant in MVP.                                                                                       |
+| MVP credentials          | Username and password are hardcoded in source code (not config or env).                                                                                                                                             |
+| HTTPS / security (MVP)   | Deferred until post-MVP. No HTTPS or "no plaintext password over the wire" requirement for MVP.                                                                                                                     |
+| Scale & future-proofing  | No need to optimize for scale now. Prioritize maintainability and future refactoring. Avoid overengineering; do not lay a whole foundation for future work. Do not design into a box, but do not over-build either. |
 
 ---
 
-** V1 behaviors **
-(note: The MVP behavior overrides these requirements for the MVP deliverable.)
+## v1 behaviors
+
+Note: MVP behavior overrides these requirements for the MVP deliverable.
 
 ## 1. Entities and Auth
 
@@ -59,8 +76,21 @@ Full multi-user, account creation, and project list come in v1.
 **How data gets in:** All data is manually entered. No file import (CSV/OFX) and no bank/brokerage connections (e.g. Plaid) in scope.
 
 - Income, spending, and investment data are entered by the user within each project.
-- **Multiple accounts per project:** A project supports defining multiple financial accounts (e.g. checking, savings, 401(k), brokerage). Each account has its own balance. When defining an account, the user can label its **tax treatment** (e.g. Roth, pre-tax, post-tax, 401(k), HSA) so the app can apply the right withdrawal/tax impact in forecasts.
-- **Validation:** For all user-input fields, **enforce valid data** — the user cannot save or add invalid data (e.g. negative balance, target date in the past). Invalid input is blocked until corrected.
+- **Multiple accounts per project:** A project supports defining multiple financial accounts (e.g. checking, savings, 401(k), brokerage). Each account has its own balance. When defining an account, the user assigns a **tax treatment** from a **fixed enum** (see **Account tax-treatment enum** below) so the app can apply the correct withdrawal order and tax impact in forecasts. The user can also **mark an account as a source for covering near-term goals** (so the projection can draw from it for goal funding).
+
+**Account tax-treatment enum**
+
+Tax treatment is a fixed set of values (not free-form). "Post-tax" and "taxable" are **different**: withdrawal and tax logic differ (e.g. taxable = brokerage; after-tax = after-tax 401(k) / non-deductible IRA with basis vs earnings).
+
+| Enum value    | Description / use                                                          | Withdrawal / tax impact in projection                                         |
+| ------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **Roth**      | Roth IRA, Roth 401(k).                                                     | Qualified withdrawals tax-free.                                               |
+| **Pre-tax**   | Traditional IRA, traditional 401(k).                                       | Withdrawals taxable as ordinary income (use tax-rate assumption).             |
+| **Taxable**   | Brokerage, checking, savings. Contributions already taxed.                 | Growth subject to capital gains/dividend tax; no withdrawal tax on principal. |
+| **HSA**       | Health Savings Account.                                                    | Tax-free for qualified medical; otherwise taxable (model per product rules).  |
+| **After-tax** | After-tax 401(k), non-deductible IRA. Contributions (basis) already taxed. | Basis non-taxable on withdrawal; earnings taxable as ordinary income.         |
+
+- **Validation:** For all user-input fields, **enforce valid data** — the user cannot save or add invalid data (e.g. negative balance, target date in the past). Invalid input is blocked until corrected. No cross-field validation and no checks for negative balances based on calculated debits. When the projection cannot be computed (missing assumption, inconsistent inputs), **show an error** — do not show partial results or degrade. Social Security is always modeled; no "no Social Security" (zero benefit or opt-out) option in scope.
 - **Limits:** **No hard limits** for v1 (e.g. max accounts per project, max years in projection, max shared users per project are not capped).
 
 ---
@@ -75,7 +105,7 @@ Full multi-user, account creation, and project list come in v1.
 When defining a short-term goal, the user indicates how it is scheduled:
 
 - **One-time:** a single target date.
-- **Recurring:** start date, end date, and **frequency** (default **yearly**). The experience is akin to a calendar event schedule (e.g. “vacation fund every year” from 2025 to 2030).
+- **Recurring:** start date, end date, and **frequency** (default **yearly**). The experience is akin to a calendar event schedule (e.g. "vacation fund every year" from 2025 to 2030).
 
 ---
 
@@ -83,7 +113,7 @@ When defining a short-term goal, the user indicates how it is scheduled:
 
 **In scope for v1:** Retirement / financial independence planning and calculation.
 
-**Product intent:** The app does not aim to give yes/no answers (e.g. “Will I have enough?”). It provides **forecasts** of the **balance sheet on a year-by-year basis**, based on:
+**Product intent:** The app does not aim to give yes/no answers (e.g. "Will I have enough?"). It provides **forecasts** of the **balance sheet on a year-by-year basis**, based on:
 
 - **Known current state** (accounts, balances, income, spending, etc.)
 - **Assumptions** (see list in Section 6)
@@ -102,7 +132,7 @@ So the primary output is projected balance sheet over time, not a binary on-trac
   - Simple login / create-account page (auth method depends on environment: local = username/password; other = Google Auth).
 
 - **Logged-in state**
-  - **Account / access management view** — manage the user’s account and access (e.g. linked Google identity, or project access).
+  - **Account / access management view** — manage the user’s account and access (e.g. linked Google identity, or project access). User sets **current age** and **partner's current age** here (no DOB; age only). Partner's age is **required** in v1.
   - **Project list view** — list of projects the user has access to; create / open / delete (if owner).
 
   - **Project details / manage view** — one project at a time, with tabs:
@@ -116,19 +146,20 @@ So the primary output is projected balance sheet over time, not a binary on-trac
 
 **Assumptions list (long-term / retirement forecasting)**
 
-The app supports the following user-editable assumptions, with sensible defaults:
+The app supports the following user-editable assumptions, with sensible defaults. **Partner is required in v1;** the Assumptions tab supports defining assumptions for both the user and the partner (e.g. separate SS claiming age, SS benefit, RMD).
 
-| Assumption                                 | Description                                                                                                                         | Example default              |
-| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| **Inflation rate**                         | Annual rate used to grow future spending and nominal values. Spending growth is **the same as inflation** (not tracked separately). | 2.5%                         |
-| **Long-term investment return (nominal)**  | Blended expected annual return for long-term investments: stocks, bonds, CDs.                                                       | 6%                           |
-| **Short-term investment return (nominal)** | Expected annual return for short-term / savings (e.g. high-yield savings, money market).                                            | 4%                           |
-| **Social Security claiming age**           | Age at which the user (and partner, if any) start(s) benefits.                                                                      | 67                           |
-| **Social Security benefit**                | Estimated annual benefit at claiming (or derived from inputs); can grow with inflation.                                             | User-entered or placeholder. |
-| **Pre-tax withdrawal start age**           | Age when withdrawals from 401(k) / traditional IRA begin (e.g. before 59½ may incur penalty).                                       | 59½                          |
-| **RMD start age**                          | Age when required minimum distributions begin for pre-tax accounts.                                                                 | 72 (or current law).         |
-| **Tax rate on withdrawals**                | Marginal rate applied to taxable withdrawals (traditional, 401(k)) for projection.                                                  | 22% (user-editable).         |
-| **Income growth rate**                     | Annual growth of salary/wages during working years.                                                                                 | 2%                           |
+| Assumption                                 | Description                                                                                                                                                 | Example default                  |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| **Inflation rate**                         | Annual rate used to grow future spending and nominal values. Spending growth is **the same as inflation** (not tracked separately).                         | 2.5%                             |
+| **Cost of living (COL)**                   | Annual or monthly COL expense; maintained **separately from near-term goals**. Increases yearly according to inflation.                                     | User-entered.                    |
+| **Long-term investment return (nominal)**  | Blended expected annual return for long-term investments: stocks, bonds, CDs.                                                                               | 6%                               |
+| **Short-term investment return (nominal)** | Expected annual return for short-term / savings (e.g. high-yield savings, money market).                                                                    | 4%                               |
+| **Social Security claiming age**           | Age at which the user (and partner) start(s) benefits; **defined separately for user and partner**.                                                         | 67                               |
+| **Social Security benefit**                | User-entered estimated annual benefit at claiming; can grow with inflation. **User and partner each have an assumption.** Default: maximum benefit allowed. | Maximum benefit (user-editable). |
+| **Pre-tax withdrawal start age**           | Age when withdrawals from 401(k) / traditional IRA begin (e.g. before 59½ may incur penalty).                                                               | 59½                              |
+| **RMD start age**                          | Age when required minimum distributions begin for pre-tax accounts.                                                                                         | 72 (or current law).             |
+| **Tax rate on withdrawals**                | Marginal rate applied to taxable withdrawals (traditional, 401(k)) for projection.                                                                          | 22% (user-editable).             |
+| **Income growth rate**                     | Annual growth of salary/wages during working years.                                                                                                         | 2%                               |
 
 **Assumptions behavior**
 
@@ -138,7 +169,7 @@ The app supports the following user-editable assumptions, with sensible defaults
 
 **Tax modeling (v1)**
 
-- v1 supports **tax-aware** modeling. When defining a financial account, the user can label it by tax treatment (e.g. Roth, pre-tax, post-tax, 401(k), HSA). The app uses these labels to apply the correct **withdrawal impacts** in the yearly balance sheet forecast (e.g. taxable vs tax-free withdrawals).
+- v1 supports **tax-aware** modeling. When defining a financial account, the user assigns a **tax treatment** from the **fixed enum** (Roth, Pre-tax, Taxable, HSA, After-tax). The app uses this to apply the correct **withdrawal order** (e.g. taxable first, then pre-tax, then Roth) and **withdrawal/tax impacts** in the yearly balance sheet forecast. **Taxable** and **After-tax** are distinct: taxable = brokerage (capital gains/dividend on growth); after-tax = after-tax 401(k) / non-deductible IRA (basis vs earnings, ordinary income on earnings).
 
 ---
 
@@ -171,51 +202,4 @@ The app supports the following user-editable assumptions, with sensible defaults
 - Design for **data living in the cloud** with standard security practices (e.g. when not running local-only).
 - Store only **names and balances** (and similar planning data); risk is intentionally limited.
 - **Do not prompt for PII** (no real name, SSN, etc. required) and **do not prompt for account numbers** (no bank account numbers, routing numbers, etc.).
-- When creating a financial account, show a **tip** that users should not use the real bank name or account number (use labels like “Checking” or “Savings” instead).
-
----
-
-## To-be-answered questions
-Questions to resolve during product or technical design. Move items here as they come up; remove or fold into the main sections once answered.
-
-**Technical-design drivers (PM input needed)**
-
-1. **Data persistence & MVP storage**
-   - Where does MVP data live? (e.g. SQLite, JSON file, in-memory.) Need a clear choice that doesn’t block later Docker → K8s → cloud.
-   - Does “local-only” mean data never leaves the machine, or only single-machine / no multi-tenant cloud? (Affects encryption, backups, future cloud design.)
-
-2. **Calculation engine & projection logic**
-   - Is there a reference for the yearly balance sheet math (e.g. spreadsheet, formula doc), or should engineering derive it from the assumptions list?
-   - How do near-term goals interact with the projection? Do they reduce balances in the forecast? If yes, from which accounts and in what order (same withdrawal-order rules as retirement)?
-   - Income and spending: only recurring (monthly/annual) with growth, or do we need one-time events? Is spending separate from near-term goals, or do goals consume from “spending” or from specific accounts?
-
-3. **User / partner / projection end**
-   - Where do we get the user’s (and partner’s) age? Is there a project-level or user-level DOB (or age) used for “projection end by user’s age / partner’s age”?
-   - Is “partner” a first-class entity in v1 (e.g. DOB, SS claiming age, SS benefit, separate RMD), or only a flag that affects projection end?
-
-4. **Social Security & assumptions**
-   - For v1, is Social Security benefit always user-entered, or do we ever derive it from earnings? How is “placeholder” defined?
-   - If there is no partner, how does “projection end by partner’s age” behave? (Hidden, disabled, or N/A?)
-
-5. **Accounts & tax treatment**
-   - Is tax treatment a fixed enum (e.g. Roth, pre-tax, taxable, 401(k), HSA) or free-form labels? (Affects withdrawal-order and tax-impact logic.)
-   - Clarify “post-tax” vs “taxable”: same withdrawal/tax impact, or different (e.g. after-tax 401(k) vs brokerage)?
-
-6. **Validation, errors & edge cases**
-   - Beyond “valid data” and type checks: any cross-field rules? (e.g. goal end date ≥ start date; projection end year ≥ current year; no negative balances after withdrawals.)
-   - When the projection can’t be computed (missing assumption, inconsistent inputs): show error and block, show partial results, or degrade gracefully?
-   - Do we need to support “no Social Security” (e.g. benefit = 0 or opt out) in the model and UI?
-
-7. **MVP auth & security**
-   - “Username and password are hardcoded”: literally in source code, or in a config file / env (e.g. `MVP_USER`, `MVP_PASSWORD`)? Config is preferable to avoid committing secrets.
-   - If MVP “may require being online,” is there any HTTPS or “no plaintext password over the wire” requirement, or is that deferred to v1/cloud?
-
-8. **Non-functional & future-proofing**
-   - Any expectation for “reasonable” scale even if there are no hard limits? (e.g. max years, max accounts, max goals.) Drives whether we design for lazy/virtualized balance sheet vs “load all.”
-   - v1 after MVP: single big release or phased? Affects how much we design for multi-user, sharing, and Google Auth in the first technical design (schema, auth abstraction, env handling).
-
-9. **Product-requirements doc**
-   - For the technical design, should we explicitly call out “design for v1 data model and auth model, implement MVP only” so the doc states which v1 scope is in scope for the first tech design?
-   - Consider adding a short “Technical design inputs” subsection here that references: persistence choice, calculation reference (or “derive from PRD”), partner/DOB model, and tax-treatment enum vs free-form.
-
----
+- When creating a financial account, show a **tip** that users should not use the real bank name or account number (use labels like "Checking" or "Savings" instead).
