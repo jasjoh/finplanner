@@ -76,7 +76,7 @@ Recommendations for default assumptions, projection methodology, and development
 
 | Recommendation | Default | Rationale |
 |----------------|---------|-----------|
-| **Value** | 59 | IRS 10% early withdrawal penalty generally applies before 59½. Using 59 as an integer default (per implementation plan) is a reasonable approximation; the app does not need to model the penalty explicitly if withdrawals are assumed to start at or after this age. |
+| **Value** | 59 | IRS 10% early withdrawal penalty generally applies before 59½. The app uses **whole years only**; 59 is the default. The app does not need to model the penalty explicitly if withdrawals are assumed to start at or after this age. |
 | **Clarity** | Label in UI so users understand this is “age when you plan to start drawing from 401(k)/IRA” (not necessarily retirement date). |
 
 ---
@@ -234,7 +234,7 @@ Recommendations for default assumptions, projection methodology, and development
 | Short-term investment return (nominal) | 4% | Savings/cash. |
 | Social Security claiming age (user & partner) | 67 | FRA for 1960+ birth year. |
 | Social Security benefit (user & partner) | Documented max (e.g. $48,216/year) | Source and year in code/README. |
-| Pre-tax withdrawal start age | 59 | Approximates 59½ rule. |
+| Pre-tax withdrawal start age | 59 | Whole years only; 59 approximates IRS 59½ rule. |
 | RMD start age | 73 | SECURE 2.0; document law dependency. |
 | Tax rate on withdrawals | 22% | Ordinary income; user can adjust. |
 | Income growth rate | 2% | Until retirement age. |

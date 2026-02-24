@@ -78,6 +78,8 @@ Note: MVP behavior overrides these requirements for the MVP deliverable.
 - Income, spending, and investment data are entered by the user within each project.
 - **Multiple accounts per project:** A project supports defining multiple financial accounts (e.g. checking, savings, 401(k), brokerage). Each account has its own balance. When defining an account, the user assigns a **tax treatment** from a **fixed enum** (see **Account tax-treatment enum** below) so the app can apply the correct withdrawal order and tax impact in forecasts. The user can also **mark an account as a source for covering near-term goals** (so the projection can draw from it for goal funding).
 
+- **Income and living expenses (current state):** The user can **create one or more income amounts** and **one or more living expense amounts** per project. The user can **edit or remove** any income or living expense they have created. **No default income or spending rows are created** — the project starts with none until the user adds them. For projection, total income is the sum of income amounts; total spending (COL) is the sum of living expense amounts (each grows with inflation).
+
 **Account tax-treatment enum**
 
 Tax treatment is a fixed set of values (not free-form). "Post-tax" and "taxable" are **different**: withdrawal and tax logic differ (e.g. taxable = brokerage; after-tax = after-tax 401(k) / non-deductible IRA with basis vs earnings).
@@ -146,7 +148,7 @@ So the primary output is projected balance sheet over time, not a binary on-trac
 
 **Assumptions list (long-term / retirement forecasting)**
 
-The app supports the following user-editable assumptions, with sensible defaults. **Partner is required in v1;** the Assumptions tab supports defining assumptions for both the user and the partner (e.g. separate SS claiming age, SS benefit, RMD).
+The app supports the following user-editable assumptions, with sensible defaults. **Partner is required in v1;** the Assumptions tab supports defining assumptions for both the user and the partner (e.g. separate retirement age, SS claiming age, SS benefit, RMD).
 
 | Assumption                                 | Description                                                                                                                                                 | Example default                  |
 | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
@@ -154,15 +156,17 @@ The app supports the following user-editable assumptions, with sensible defaults
 | **Cost of living (COL)**                   | Annual or monthly COL expense; maintained **separately from near-term goals**. Increases yearly according to inflation.                                     | User-entered.                    |
 | **Long-term investment return (nominal)**  | Blended expected annual return for long-term investments: stocks, bonds, CDs.                                                                               | 6%                               |
 | **Short-term investment return (nominal)** | Expected annual return for short-term / savings (e.g. high-yield savings, money market).                                                                    | 4%                               |
+| **Retirement age**                         | Age at which the user (and partner) stop working; salary/wages and **income growth** apply until this age. **Defined separately for user and partner.** Can differ from SS claiming age. | 67                               |
 | **Social Security claiming age**           | Age at which the user (and partner) start(s) benefits; **defined separately for user and partner**.                                                         | 67                               |
 | **Social Security benefit**                | User-entered estimated annual benefit at claiming; can grow with inflation. **User and partner each have an assumption.** Default: maximum benefit allowed. | Maximum benefit (user-editable). |
-| **Pre-tax withdrawal start age**           | Age when withdrawals from 401(k) / traditional IRA begin (e.g. before 59½ may incur penalty).                                                               | 59½                              |
-| **RMD start age**                          | Age when required minimum distributions begin for pre-tax accounts.                                                                                         | 72 (or current law).             |
+| **Pre-tax withdrawal start age**           | Age when withdrawals from 401(k) / traditional IRA begin (e.g. before 59 may incur penalty). All age assumptions are **whole years only** (no half-years). | 59                               |
+| **RMD start age**                          | Age when required minimum distributions begin for pre-tax accounts. All age assumptions are **whole years only**.                                          | 72 (or current law).             |
 | **Tax rate on withdrawals**                | Marginal rate applied to taxable withdrawals (traditional, 401(k)) for projection.                                                                          | 22% (user-editable).             |
-| **Income growth rate**                     | Annual growth of salary/wages during working years.                                                                                                         | 2%                               |
+| **Income growth rate**                     | Annual growth of salary/wages during working years (applies until **retirement age**).                                                                                                         | 2%                               |
 
 **Assumptions behavior**
 
+- **Ages:** All age assumptions (claiming age, pre-tax withdrawal start age, RMD start age, retirement age, user/partner age) are **whole years only** (integer); the app does not use half-years (e.g. 59, not 59½).
 - Assumptions start with **sensible defaults** (as in the table above).
 - Users can **edit** assumptions (e.g. in the Assumptions tab).
 - Users can **reset** assumptions (or individual values) back to default.
