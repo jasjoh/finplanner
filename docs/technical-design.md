@@ -46,6 +46,7 @@ Technical design for implementing the FinPlanner web app. This document is inten
 **Development and ops**
 
 - **Language:** TypeScript for both backend and frontend. Strict mode recommended.
+- **Module format:** ESM everywhere. Server: Node ESM (`"type": "module"` in server package.json; `tsc` with `"module": "NodeNext"` emits ESM). Client: Vite builds ESM by default; dev and production use ES modules.
 - **Package manager:** **pnpm.** Lockfile must be committed.
 - **Environment:** Node version pinned via `.nvmrc` or `engines` in package.json. No runtime beyond Node and PostgreSQL for MVP.
 - **Migrations:** Schema changes via migration files (timestamped or sequential). No schema-from-entity-only; migrations are the source of truth for DB shape.
@@ -316,8 +317,8 @@ Alternatively, keep `server/` and `client/` under `src/` in a single package. Wh
 **Config contents**
 
 - **Database:** Connection URL (e.g. `DATABASE_URL`). For local dev, default to `postgresql://localhost:5432/finplanner` or similar.
-- **Server:** Port (e.g. 3000 or 5000).
-- **Client:** API base URL (e.g. `http://localhost:3000/api` for dev). Set via env at build time or runtime (e.g. `import.meta.env.VITE_API_URL` with Vite).
+- **Server:** Port (e.g. 5001). Client dev server runs on port 5000.
+- **Client:** API base URL (e.g. `http://localhost:5001/api` for dev). Set via env at build time or runtime (e.g. `import.meta.env.VITE_API_URL` with Vite).
 
 **Secrets**
 

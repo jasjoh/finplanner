@@ -57,8 +57,8 @@ Development plan for implementing the FinPlanner MVP per [Product Requirements](
 **Instructions:**
 
 - Under `server/`, create `package.json` with dependencies: `express`, `typescript`, and types as needed; devDependencies for build and run (e.g. `ts-node` or `tsx`, or build script with `tsc`). Use pnpm.
-- Create `server/src/index.ts` (or equivalent) that: loads configuration (port 3001), creates an Express app, and starts listening. Add a simple GET route (e.g. `GET /api/health`) that returns a 200 and a small JSON payload so that the server is clearly running.
-- Configure TypeScript for the server (e.g. `server/tsconfig.json`) with strict mode. Ensure the server can be run in development (e.g. `pnpm run dev` using `tsx` or `ts-node`).
+- Create `server/src/index.ts` (or equivalent) that: loads configuration (port 5001), creates an Express app, and starts listening. Add a simple GET route (e.g. `GET /api/health`) that returns a 200 and a small JSON payload so that the server is clearly running.
+- Configure TypeScript for the server (e.g. `server/tsconfig.json`) with strict mode and ESM output (e.g. `"module": "NodeNext"` with `"type": "module"` in server `package.json` per technical design). Ensure the server can be run in development (e.g. `pnpm run dev` using `tsx` or `ts-node`).
 
 **Acceptance:** Running the server (e.g. `pnpm run dev` from `server/`) starts the process and `GET /health` (or chosen path) returns 200.
 
@@ -111,8 +111,8 @@ Development plan for implementing the FinPlanner MVP per [Product Requirements](
 **Instructions:**
 
 - Under `client/`, create the app using Vite with the React + TypeScript template (e.g. `pnpm create vite . --template react-ts` or equivalent). Use pnpm.
-- Configure Vite so that the dev server runs (on port 3000) and the app has a single root component that renders a simple heading or "FinPlanner" so the app loads. Set up React Router: install `react-router-dom` and add a minimal router with a single route (e.g. `/` rendering the placeholder view).
-- Add environment handling for the API base URL: e.g. `VITE_API_URL` with a default of `http://localhost:3001/api` for development. Document this in a comment or README.
+- Configure Vite so that the dev server runs (on port 5000) and the app has a single root component that renders a simple heading or "FinPlanner" so the app loads. Set up React Router: install `react-router-dom` and add a minimal router with a single route (e.g. `/` rendering the placeholder view).
+- Add environment handling for the API base URL: e.g. `VITE_API_URL` with a default of `http://localhost:5001/api` for development. Document this in a comment or README.
 - Ensure `pnpm run dev` from `client/` starts the Vite dev server and the app is viewable in Chrome.
 
 **Acceptance:** `pnpm run dev` in `client/` starts the dev server; opening the app in Chrome shows the placeholder; build (`pnpm run build`) succeeds.
